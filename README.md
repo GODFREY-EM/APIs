@@ -41,5 +41,193 @@ Step 1: Create a new Rails application by using the rails new command from your 
 
 rails new pet_tracker --api
 
+note: minimal amount of middleware:
+"Middleware" refers to extra tools or features that the program can use. By using the "--api" flag, you're telling the program to only use the most basic set of these tools.
 
-Step 3: Test the Web Service
+Step 2: Navigate to the App's Folder: First, use the cd command (which stands for "change directory") to enter the directory named pet_tracker_app. Think of this directory as a folder containing all the building blocks for the pet tracker app To create the models, run the following commands:
+
+rails g model Owner name:string email:string
+
+rails g model Pet name:string species:string breed:string age:float owner_id:integer
+
+Whenever you run those model creation commands, a special field called "id" gets automatically added to each model. Think of this "id" field as a unique label assigned to every pet and owner in your database.
+
+Step 3: Create tables in the database for pets and owners by running a migration with the following command:
+
+rails db:migrate
+
+Step 4: Open and edit the routes.rb file to looks like 
+
+Rails.application.routes.draw do
+    get '/pets', to: 'pets#index'
+    post '/pets', to: 'pets#create'
+    get '/pets/:id', to: 'pets#show'
+    patch '/pets/:id', to: 'pets#update'
+    delete '/pets/:id', to: 'pets#destroy'
+  
+    get '/owners', to: 'owners#index'
+    post '/owners', to: 'owners#create'
+    get '/owners/:id', to: 'owners#show'
+    get '/owners/:id/pets', to: 'owners#pets'
+    patch '/owners/:id', to: 'owners#update'
+    delete '/owners/:id', to: 'owners#destroy'
+end
+
+Code as a Traffic Director: The code you're looking at serves as a map for how different requests should be handled within the app. It's like a traffic director, guiding different actions to their appropriate destinations.
+
+
+ Step 5: Generate the controllers for your Pet and Owner models by running the following commands:
+
+rails generate controller Pets index create show update destroy --skip-routes
+
+rails generate controller Owners index create show update destroy --skip-routes
+
+These commands create controller files in the /app/controller folder. We’ve included the --skip-routes flag because we’ve created our routes manually.
+
+
+Step 6: Filling in the Blanks - Writing the Controller Code
+
+The previous step laid the groundwork by creating outlines for each controller action (like placeholders).  Now, it's your turn to write the actual code that brings these actions to life, so open the pets_controller.rb and edit it to looks like 
+
+class PetsController < ApplicationController
+  def index
+    @pets = Pet.all
+    render json: @pets
+  end
+
+  def create
+    @pet = Pet.new(pet_params)
+    
+    if @pet.save
+      render json: @pet, status: :created
+    else
+      render json: {error: 'Pet creation failed'}, status: :unprocessable_entity
+    end
+  end
+
+  def show
+    @pet = Pet.find(params[:id])
+
+    if @pet
+      render json: @pet, status: :ok
+    else
+      render json: { error: 'Pet not found' }, status: :not_found
+    end
+  end
+
+  def update
+    @pet = Pet.find(params[:id])
+
+    if @pet.update(pet_params)
+      render json: @pet, status: :ok
+    else
+      render json: { error: 'Pet update failed' }, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    @pet = Pet.find(params[:id])
+
+    if @pet.destroy
+      render json: { message: 'Pet successfully deleted' }, status: :ok
+    else
+      render json: { error: 'Pet deletion failed' }, status: :internal_server_error
+    end
+  end
+
+  private
+
+  def pet_params
+    params.permit(:name, :species, :breed, :age, :owner_id)
+  end
+
+end
+
+
+
+therefore, Simple Words for Powerful Actions: The code uses methods like .all, .find, .new, and .destroy
+. These methods might seem cryptic, but they represent common actions related to your data:
+
+    .all - This retrieves all entries from the database for a specific model (like fetching a complete list of pets).
+    .find - This targets a particular entry based on its unique identifier (like finding a specific pet using its ID).
+    .new - This creates a new entry but doesn't save it yet (like creating a new pet record but not adding it to the database permanently).
+    .destroy - This removes an existing entry from the database (like deleting a pet from the system).
+
+The Owners controller will follow a similar pattern:
+
+class OwnersController < ApplicationController
+  def index
+    @owners = Owner.all
+    render json: @owners
+  end
+
+  def create
+    @owner = Owner.new(owner_params)
+
+    if @owner.save
+      render json: @owner, status: :created
+    else
+      render json: {error: 'Owner creation failed'}, status: :unprocessable_entity
+    end
+  end
+
+  def show
+    @owner = owner.find(params[:id])
+
+    if @owner
+      render json: @owner, status: :ok
+    else
+      render json: { error: 'Owner not found' }, status: :not_found
+    end
+  end
+
+  def pets
+    @pets = Owner.find(params[:id]).pets
+
+    if @pets
+      render json: @pets
+    else 
+      render json: { error: 'Pets not found'}, status: :not_found
+    end
+  end
+
+  def update
+    @owner = Owner.find(params[:id])
+
+    if @owner.update(owner_params)
+      render json: @owner
+    else
+      render json: { error: 'Owner update failed' }, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    @owner = Owner.find(params[:id])
+
+    if @owner.destroy
+      render json: { message: 'Owner successfully deleted' }, status: :ok
+    else
+      render json: { error: 'Owner deletion failed' }, status: :internal_server_error
+    end
+  end
+
+  private
+
+  def owner_params
+    params.permit(:name, :email)
+  end
+
+end
+
+
+As we mentioned earlier, the Owners controller has a custom pets action that uses the .find method to look up the specified owner and return all of their associated pets.
+
+
+Step 7: It’s now time to start a server that will run your API locally! To do so, simply run:
+
+rails server. Your API will now be running on http://localhost:3000/. Open the link through your browser 
+
+
+Step 3: Putting Your API to the Test
+
+Congratulations! You've built your API, but before unleashing it to the world, let's make sure it works as planned.  It's time for some testing!
